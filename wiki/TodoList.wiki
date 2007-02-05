@@ -1,0 +1,14 @@
+#summary Keep track of todo-list and future features.
+
+= Introduction =
+
+TODO-lists for both implementation details and features.
+
+
+= Implementation =
+
+ * Disambiguate data: function/task/scenario
+
+= Features =
+
+ * API for statistic results.
