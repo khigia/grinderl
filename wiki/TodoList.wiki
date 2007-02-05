@@ -7,9 +7,14 @@ TODO-lists for both implementation details and features.
 
 = Implementation =
 
- * Disambiguate data: function/task/scenario
+ * Disambiguate data: function/task/scenario.
+ * Statistic: create a unique report for all nodes (not one per node).
+ * See if Mnesia should be used for statistic gathering.
 
 = Features =
 
+ * More node manipulation API (display, remove...).
  * API for statistic results.
+ * Use the R library to plot statistic results.
  * Adding scenario description (load evolution in time).
+ * Run external tests: python port to run tests written in Python, or run external process...
