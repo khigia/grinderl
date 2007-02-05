@@ -1,8 +1,10 @@
 #summary Keep track of todo-list and future features.
 
-= Introduction =
+= Documentation =
 
-TODO-lists for both implementation details and features.
+ * Task definition
+ * Scenario definition
+ * Statistics
 
 
 = Implementation =
