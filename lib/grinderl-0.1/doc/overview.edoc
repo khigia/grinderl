@@ -1,0 +1,150 @@
+@title Grinderl: a simple tool to repeat tests.
+@version 0.1
+@copyright 2007 Ludovic Coquelle
+@author Ludovic Coquelle <lcoquelle@gmail.com>
+
+@doc
+== Introduction ==
+
+Grinderl is a tool to run repeated tests on (remote) Erlang nodes.
+
+It is inspired by the Grinder project.
+
+=== What it does ===
+Repeat a function N time on each nodes, giving different argument for each function call, and gather all function results in the same place (intend is to compute statistics on those result, like a server respond time).
+
+=== Running ===
+This is an OTP application:
+<pre>
+application:start(grinderl).
+</pre>
+
+A tool script irun.sh should work on most linux machine and start an Erlang with SASL and grinderl.
+
+A test module to quickly check the installation:
+<pre>
+./irun.sh
+#&gt;test:init(). % will add some nodes to grinderl: local node is registered twice
+#>test:test_seq1().
+  % a function is run 3 times, with a delay of 1s each time, on all nodes
+  % result of the function is the evaluation time 'writetime' and the 2-tuple
+  % of its arguments
+#&gt;test:test_con1().
+  % same function is used but executed in concurrent processes.
+</pre>
+
+Result example:
+<pre>
+(node1@localhost)1&gt; test:init().
+[ok,ok]
+(node1@localhost)2&gt; test:test_seq1().
+Debug:grd_stress_srv:92: begin task distribution on nodes:[node1@localhost,node1@localhost]
+Debug:grd_stress_srv:99: workers=[&lt;0.65.0&gt;,&lt;0.66.0&gt;]
+Debug:grd_stress_srv:105: end task distribution
+Debug:grd_worker_srv:83: worker &lt;0.65.0&gt; is working on 'Testing task 1' ...
+Debug:grd_worker_srv:83: worker &lt;0.66.0&gt; is working on 'Testing task 1' ...
+Debug:grd_worker_srv:199: worker &lt;0.65.0&gt; create TaskSupervisor &lt;0.67.0&gt; on node node1@localhost
+Debug:grd_worker_srv:199: worker &lt;0.66.0&gt; create TaskSupervisor &lt;0.68.0&gt; on node node1@localhost
+ok
+Debug:test:33: task1's function got two arguments: bea, 12
+Debug:test:33: task1's function got two arguments: bea, 0
+Debug:grd_worker_srv:136: process &lt;0.65.0&gt; ran task and will report [{ok,&lt;0.65.0&gt;,[126,{[98,101,97],12}]}] to supervisor &lt;0.67.0&gt;
+Debug:grd_worker_srv:136: process &lt;0.66.0&gt; ran task and will report [{ok,&lt;0.66.0&gt;,[130,{[98,101,97],0}]}] to supervisor &lt;0.68.0&gt;
+Debug:grd_worker_srv:240: TaskManager &lt;0.67.0&gt; got values from &lt;0.65.0&gt;: [126,{[98,101,97],12}]
+Debug:grd_worker_srv:240: TaskManager &lt;0.68.0&gt; got values from &lt;0.66.0&gt;: [130,{[98,101,97],0}]
+Debug:test:33: task1's function got two arguments: pouf, 77
+Debug:test:33: task1's function got two arguments: pouf, 77
+Debug:grd_worker_srv:136: process &lt;0.66.0&gt; ran task and will report [{ok,&lt;0.66.0&gt;,[152,{[112,111,117,102],77}]}] to supervisor &lt;0.68.0&gt;
+Debug:grd_worker_srv:136: process &lt;0.65.0&gt; ran task and will report [{ok,&lt;0.65.0&gt;,[153,{[112,111,117,102],77}]}] to supervisor &lt;0.67.0&gt;
+Debug:grd_worker_srv:240: TaskManager &lt;0.68.0&gt; got values from &lt;0.66.0&gt;: [152,{[112,111,117,102],77}]
+Debug:grd_worker_srv:240: TaskManager &lt;0.67.0&gt; got values from &lt;0.65.0&gt;: [153,{[112,111,117,102],77}]
+Debug:test:33: task1's function got two arguments: paf, 77
+Debug:test:33: task1's function got two arguments: paf, 1
+Debug:grd_worker_srv:136: process &lt;0.65.0&gt; ran task and will report [{ok,&lt;0.65.0&gt;,[150,{[112,97,102],77}]}] to supervisor &lt;0.67.0&gt;
+Debug:grd_worker_srv:136: process &lt;0.66.0&gt; ran task and will report [{ok,&lt;0.66.0&gt;,[141,{[112,97,102],1}]}] to supervisor &lt;0.68.0&gt;
+Debug:grd_worker_srv:208: TaskManager &lt;0.67.0&gt; end on values from &lt;0.65.0&gt;:[150,{[112,97,102],77}]
+Debug:grd_worker_srv:208: TaskManager &lt;0.68.0&gt; end on values from &lt;0.66.0&gt;:[141,{[112,97,102],1}]
+Debug:grd_stress_srv:202: Gatherer &lt;0.64.0&gt;: finish listening worker &lt;0.67.0&gt; (took 2010341): NTest=3, NError=0 =&gt;
+Debug:grd_stress_srv:224:  writetime sum=    429.00 avg=    143.00 dev=     12.08 min=    126.00 max=    153.00 med=    150.00
+Debug:grd_stress_srv:232: writer_val lst=[{{[98,101,97],12},1},{{[112,111,117,102],77},1},{{[112,97,102],77},1}]
+Debug:grd_stress_srv:202: Gatherer &lt;0.64.0&gt;: finish listening worker &lt;0.68.0&gt; (took 2010324): NTest=3, NError=0 =&gt;
+Debug:grd_stress_srv:224:  writetime sum=    423.00 avg=    141.00 dev=      8.98 min=    130.00 max=    152.00 med=    141.00
+Debug:grd_stress_srv:232: writer_val lst=[{{[112,111,117,102],77},1},{{[98,101,97],0},1},{{[112,97,102],1},1}]
+Debug:grd_stress_srv:194: Gatherer &lt;0.64.0&gt;: finish listening all workers after 2012104 ms
+</pre>
+
+=== What is a task ===
+
+A task define the function to evaluate, how to give this function different arguments for each call, what kind of data this function will give us back to gather, and of course how many time this function is repeated.
+
+
+Here is an example:
+* Let's 2 Erlang nodes.
+* Let's F a function which behave as a server client.
+* F takes one argument, which is a server.
+* F return 2 values which are the time to got the reply, and a server result.
+* 3 server S1, S2, S3 are running.
+* Goal is to run the function F (make a request) 10 times for each server, with an equitable load balancing.
+* Let's create a task:
+<pre>
+Task = #task{
+    nick = "Run F on S1, S2, S3",
+    task_fun = F,
+    arglst = [
+        {seq, [S1, S2, S3]}
+    ],
+    result_spec = [
+        {mean, evaltime},
+        {count, servresult}
+    ],
+    mode = concurrent,
+    repeat_n = 15 % 2 worker nodes * 15 function calls (3 servers, 10 requests each)
+}).
+</pre>
+* Run it:
+<pre>
+erl#&gt;grinderl:add_nodes([N1, N2]).
+erl#&gt;grinderl:run_task(Task).
+</pre>
+
+Currently a task is define by a record:
+<pre>
+-record(task, {
+    nick,
+    task_fun,
+    arglst,
+    result_spec,
+    mode,
+    repeat_n
+}).
+
+nick::string()  : name of the task
+
+task_fun::fun() : function to evaluate, take N arguments, return must be:
+  {ok, Pid, [ReturnValue]}|{error, Pid, Reason}
+
+arglst::list()  : list of length N, each item is a tuple like:
+  {fixed, ArgValue::term()} : argument is ArgValue
+  {seq, [Args]}             : argument will take successive value in Args
+  {choice, [Args]}          : argument will take a random value in Args
+  {rr, [], [Args]}          : argument will take successively all value in Args in random order (rr for round-robin)
+
+result_spec::list() : describe all value return by task_fun in ReturnValue;
+  each of those return values has a type and a name, defined by a 2-tuple:
+  {mean, Name::atom()} : return value will be store in a list (intend is to compute mean value, variance...)
+  {count, Name::atom()} : return value will be store in a dictionary, where this return value is the key and the associated value is a counter.
+
+mode::atom(): concurrent|{sequence, Delay} If concurrent, each function call is a different processes; else one process do in sequence all the function calls, sleeping Delay miliseconds between each evaluation.
+</pre>
+
+
+== Architecture ==
+...
+
+== Future ==
+<ul>
+<li>A real documentation!</li>
+<li>More node manipulation API (display, remove...).</li>
+<li>Use the R library to plot statistic results.</li>
+<li>Add a Python port to run tests writen in Python.</li>
+</ul>
