@@ -12,3 +12,4 @@ TODO-lists for both implementation details and features.
 = Features =
 
  * API for statistic results.
+ * Adding scenario description (load evolution in time).
