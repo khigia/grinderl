@@ -2,16 +2,17 @@
 
 = Documentation =
 
- * Task definition
- * Scenario definition
- * Statistics
-
+ * Task definition, with argument's usage rules
+ * Scenario definition, and repetition of task
+ * Statistics of task results
+ * Complete example (goal, test deployment and results)
 
 = Implementation =
 
  * Disambiguate data: function/task/scenario.
- * Statistic: create a unique report for all nodes (not one per node).
+ * Create a simple statistic report for all nodes (not one per node).
  * See if Mnesia should be used for statistic gathering.
+ * Build system: sinan or erlware?
 
 = Features =
 
