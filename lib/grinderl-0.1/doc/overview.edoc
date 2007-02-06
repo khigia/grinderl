@@ -1,4 +1,4 @@
-@title Grinderl: a simple tool to repeat tests.
+@title grinderl: a simple tool to repeat task.
 @version 0.1
 @copyright 2007 Ludovic Coquelle
 @author Ludovic Coquelle <lcoquelle@gmail.com>
@@ -8,20 +8,30 @@
 
 Grinderl is a tool to run repeated tests on (remote) Erlang nodes.
 
-It is inspired by the Grinder project.
+It is inspired by the Grinder project, but aims to be a lightweight framework, easier to use than Tsung.
 
 === What it does ===
-Repeat a function N time on each nodes, giving different argument for each function call, and gather all function results in the same place (intend is to compute statistics on those result, like a server respond time).
+Repeat a function N time on each nodes, giving different argument for each function call, and gather all function results in the same place (intend is to compute statistics on those result, like a server respond time (load testing)).
 
-=== Running ===
-This is an OTP application:
+== Running ==
+
+Start it as an OTP application:
 <pre>
 application:start(grinderl).
 </pre>
+or use the custom API provided by _grinderl_ module:
+<pre>
+grinderl:start().
+</pre>
 
-A tool script irun.sh should work on most linux machine and start an Erlang with SASL and grinderl.
+A tool script _irun.sh_ should work on most linux machine and start an Erlang node with SASL and grinderl.
 
-A test module to quickly check the installation:
+== Architecture ==
+...
+
+
+== Annexe: test module to check installation ==
+
 <pre>
 ./irun.sh
 #&gt;test:init(). % will add some nodes to grinderl: local node is registered twice
@@ -73,40 +83,7 @@ Debug:grd_stress_srv:232: writer_val lst=[{{[112,111,117,102],77},1},{{[98,101,9
 Debug:grd_stress_srv:194: Gatherer &lt;0.64.0&gt;: finish listening all workers after 2012104 ms
 </pre>
 
-=== What is a task ===
-
-A task define the function to evaluate, how to give this function different arguments for each call, what kind of data this function will give us back to gather, and of course how many time this function is repeated.
-
-
-Here is an example:
-* Let's 2 Erlang nodes.
-* Let's F a function which behave as a server client.
-* F takes one argument, which is a server.
-* F return 2 values which are the time to got the reply, and a server result.
-* 3 server S1, S2, S3 are running.
-* Goal is to run the function F (make a request) 10 times for each server, with an equitable load balancing.
-* Let's create a task:
-<pre>
-Task = #task{
-    nick = "Run F on S1, S2, S3",
-    task_fun = F,
-    arglst = [
-        {seq, [S1, S2, S3]}
-    ],
-    result_spec = [
-        {mean, evaltime},
-        {count, servresult}
-    ],
-    mode = concurrent,
-    repeat_n = 15 % 2 worker nodes * 15 function calls (3 servers, 10 requests each)
-}).
-</pre>
-* Run it:
-<pre>
-erl#&gt;grinderl:add_nodes([N1, N2]).
-erl#&gt;grinderl:run_task(Task).
-</pre>
-
+= Annexe: task and scenario =
 Currently a task is define by a record:
 <pre>
 -record(task, {
@@ -137,14 +114,3 @@ result_spec::list() : describe all value return by task_fun in ReturnValue;
 mode::atom(): concurrent|{sequence, Delay} If concurrent, each function call is a different processes; else one process do in sequence all the function calls, sleeping Delay miliseconds between each evaluation.
 </pre>
 
-
-== Architecture ==
-...
-
-== Future ==
-<ul>
-<li>A real documentation!</li>
-<li>More node manipulation API (display, remove...).</li>
-<li>Use the R library to plot statistic results.</li>
-<li>Add a Python port to run tests writen in Python.</li>
-</ul>
