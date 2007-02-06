@@ -5,14 +5,14 @@
  * Task definition, with argument's usage rules
  * Scenario definition, and repetition of task
  * Statistics of task results
- * Complete Example (goal, test deployment and results)
+ * Complete [Example] (goal, test deployment and results)
 
 = Implementation =
 
  * Disambiguate data: function/task/scenario.
  * Create a simple statistic report for all nodes (not one per node).
  * See if Mnesia should be used for statistic gathering.
- * Build system: sinan or erlware?
+ * Build system: [http://code.google.com/p/sinan sinan] or [http://www.erlware.org erlware]?
 
 = Features =
 
@@ -21,3 +21,4 @@
  * Use the R library to plot statistic results.
  * Adding scenario description (load evolution in time).
  * Run external tests: python port to run tests written in Python, or run external process...
+
