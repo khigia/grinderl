@@ -1,0 +1,57 @@
+#summary Complete example: from test deployment to result analysis
+
+Goal of this example is to write a complete documentation of _grinderl_ through a "real case" example.
+
+* !!! work in progress !!! *
+
+= Principles of _grinderl_ =
+
+Definitions (TODO): Scenario, task, function's arguments and function's results
+
+A task define the function to evaluate, how to give this function different arguments for each call, what kind of data this function will give us back to gather, and of course how many time this function is repeated.
+
+
+= Problem =
+
+Here is an example:
+* Let's 2 Erlang nodes N1 and N2.
+* Let's F a function which behave as a server client (send one request and wait one result).
+  * F takes one argument, which is a server.
+  * F return 2 values which are the time to got the reply, and a server result.
+* 3 server S1, S2, S3 are running.
+* Goal is to run the function F (make a request) 10 times for each server, with an equitable load balancing.
+
+
+= Implementation of the tests =
+
+Let's create a task:
+<pre>
+Task = #task{
+    nick = "Run F on S1, S2, S3",
+    task_fun = F,
+    arglst = [
+        {seq, [S1, S2, S3]}
+    ],
+    result_spec = [
+        {mean, evaltime},
+        {count, servresult}
+    ],
+    mode = concurrent,
+    repeat_n = 15 % 2 worker nodes * 15 function calls (3 servers, 10 requests each)
+}).
+</pre>
+
+
+= Run the tests =
+<pre>
+erl#&gt;grinderl:add_nodes([N1, N2]).
+erl#&gt;grinderl:run_task(Task).
+</pre>
+
+
+= Get the result =
+...
+
+
+
+

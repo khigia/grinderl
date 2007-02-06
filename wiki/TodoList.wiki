@@ -5,7 +5,7 @@
  * Task definition, with argument's usage rules
  * Scenario definition, and repetition of task
  * Statistics of task results
- * Complete example (goal, test deployment and results)
+ * Complete Example (goal, test deployment and results)
 
 = Implementation =
 
