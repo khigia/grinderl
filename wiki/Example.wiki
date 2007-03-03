@@ -6,9 +6,9 @@ Goal of this example is to write a complete documentation of _grinderl_ through 
 
 = Principles of grinderl =
 
-TODO: Definitions: Scenario, task, function's arguments and function's results
-
-A task define the function to evaluate, how to give this function different arguments for each call, what kind of data this function will give us back to gather, and of course how many time this function is repeated.
+  * Basic action in grinderl is a *task*, which is quite similar with a function, except that a task embed the function code, the arguments it will receive, and a description of the results it will give.
+  * A *test* wrap a task to define how this task is run on one node: it embed notion of sequence/concurrency and the number of time the task is repeated.
+  * A *scenario* describes then when and where some tests are run.
 
 
 = Problem =
@@ -30,7 +30,7 @@ Task = #task{
     nick = "Run F on S1, S2, S3",
     task_fun = F,
     arglst = [
-        {seq, [S1, S2, S3]}
+        {sequence, [S1, S2, S3]}
     ],
     result_spec = [
         {mean, evaltime},

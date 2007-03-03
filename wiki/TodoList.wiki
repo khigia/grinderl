@@ -3,22 +3,23 @@
 = Documentation =
 
  * Task definition, with argument's usage rules
- * Scenario definition, and repetition of task
+ * Scenario definition, and repetition of task/test
  * Statistics of task results
  * Complete [Example] (goal, test deployment and results)
 
 = Implementation =
 
- * Disambiguate data: function/task/scenario.
- * Create a simple statistic report for all nodes (not one per node).
  * See if Mnesia should be used for statistic gathering.
  * Build system: [http://code.google.com/p/sinan sinan] or [http://www.erlware.org erlware]?
 
 = Features =
 
- * More node manipulation API (display, remove...).
- * API for statistic results.
- * Use the R library to plot statistic results.
- * Adding scenario description (load evolution in time).
+ * Disambiguate data: function/test/task/scenario. Have helpers to create/manipulate.
+ * API for statistic results: per node, and global one
  * Run external tests: python port to run tests written in Python, or run external process...
+ * Command-line interface
+ * More node manipulation API (display, remove, remote start...).
+ * Adding scenario description (load evolution in time).
+ * Use the R library to plot statistic results.
+ * Embed yaws as a graphical API
 

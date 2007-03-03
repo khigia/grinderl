@@ -1,9 +1,9 @@
 %%% @author Ludovic Coquelle <lcoquelle@gmail.com>
 %%% @copyright 2007 Ludovic Coquelle
-%%% @doc Worker server: execute a task.
+%%% @doc Worker server: execute a test.
 %%%
-%%% Called by the stress server, this process will execute a task and report
-%%% the result (task definition in include/grinderl.hrl).
+%%% Called by the stress server, this process will execute a test and report
+%%% the result (test definition in include/grinderl.hrl).
 %%%
 %%% For license information see LICENSE.txt
 %%% @end
@@ -25,7 +25,7 @@
 % ~~ Declaration: API
 -export([
     start/0,
-    run_task/3
+    run_test/3
 ]).
 
 
@@ -48,11 +48,11 @@ start() ->
         []
     ).
 
-%%% @doc  Start a task.
-%%% @spec (Worker::pid(), Task::task(), ReportTo::pid()) -> ok | {error, Reason}
+%%% @doc  Start a test.
+%%% @spec (Worker::pid(), Test::test(), ReportTo::pid()) -> ok | {error, Reason}
 %%% @end
-run_task(Worker, Task, ReportTo) ->
-    gen_server:cast(Worker, {run_task, Task, ReportTo}).
+run_test(Worker, Test, ReportTo) ->
+    gen_server:cast(Worker, {run_test, Test, ReportTo}).
 
 % ~~ Implementation: Behaviour callbacks
 
@@ -74,14 +74,14 @@ init(_InitArgs) ->
 handle_call(_Request, _From, State) ->
     {reply, ok, State}.
 
-%%% @doc  Handle request {run_task, Task, ReportTo}; else nothing.
+%%% @doc  Handle request {run_test, Tast, ReportTo}; else nothing.
 %%% OTP meaning: handle any request sent through {@link gen_server:cast/2} or {@link gen_server:multi_cast/2}.
 %%% @see  gen_server:handle_cast/3
 %%% @spec (Request, State) -> {noreply|stop, Params}
 %%% @end
-handle_cast({run_task, Task, ReportTo}, State) ->
-    ?DEBUG("worker ~w is working on ~p ...", [self(), Task#task.nick]),
-    run_task(Task, ReportTo),
+handle_cast({run_test, Test, ReportTo}, State) ->
+    ?DEBUG("worker ~w is working on ~p ...", [self(), Test#test.nick]),
+    run_test(Test, ReportTo),
     {noreply, State};
 handle_cast(_Request, State) ->
     {noreply, State}.
@@ -115,81 +115,81 @@ code_change(_OldVsn, State, _Extra) ->
 
 % ~~ Implementation: Internal
 
-run_task(Task, ReportTo) ->
-    TaskFun        = Task#task.task_fun,
-    TaskArgLst     = Task#task.arglst,
-    TaskResultSpec = Task#task.result_spec,
-    TaskMode       = Task#task.mode,
-    TaskRepeat     = Task#task.repeat_n,
-    TaskSupervisor = create_task_supervisor(
+run_test(Test, ReportTo) ->
+    TaskFun        = (Test#test.task)#task.callable,
+    TaskArgsSpec   = (Test#test.task)#task.args_spec,
+    TaskResultSpec = (Test#test.task)#task.result_spec,
+    Mode       = Test#test.mode,
+    Repeat     = Test#test.repeat_n,
+    Supervisor = create_test_supervisor(
         ReportTo,
-        TaskRepeat,
+        Repeat,
         TaskResultSpec
     ),
-    MeasuredTaskFun = wrap_task(TaskSupervisor, TaskFun),
-    run_task_fun(TaskMode, TaskRepeat, MeasuredTaskFun, TaskArgLst).
+    MeasuredTaskFun = wrap_task(Supervisor, TaskFun),
+    run_task(Mode, Repeat, MeasuredTaskFun, TaskArgsSpec).
 
-wrap_task(TaskSupervisor, TaskFun) ->
+wrap_task(TestSupervisor, TaskFun) ->
     fun(ArgLst) ->
         %TODO measure time of task execution
         Res = erlang:apply(TaskFun, ArgLst),
         ?DEBUG(
             "process ~w ran task and will report [~w] to supervisor ~w",
-            [self(), Res, TaskSupervisor]
+            [self(), Res, TestSupervisor]
         ),
         case Res of
             {ok, Pid, ValLst} ->
-                TaskSupervisor ! {stat, Pid, ValLst};
+                TestSupervisor ! {stat, Pid, ValLst};
             {error, Pid, Reason} ->
-                TaskSupervisor ! {error, Pid, Reason}
+                TestSupervisor ! {error, Pid, Reason}
         end
     end.
 
-run_task_fun({sequence, _Delay}, 0, _TaskFun, _TaskArgLst) ->
+run_task({sequence, _Delay}, 0, _TaskFun, _TaskArgsSpec) ->
     ok;
-run_task_fun(Mode = {sequence, Delay}, N, TaskFun, TaskArgLst) ->
-    {NewTaskArgLst, Args} = choose_task_args(TaskArgLst),
+run_task(Mode = {sequence, Delay}, N, TaskFun, TaskArgsSpec) ->
+    {NewTaskArgsSpec, Args} = choose_task_args(TaskArgsSpec),
     TaskFun(Args),
     timer:sleep(Delay), %TODO use of timer:apply_after?
-    run_task_fun(Mode, N-1, TaskFun, NewTaskArgLst);
-run_task_fun(concurrent, 0, _TaskFun, _TaskArgLst) ->
+    run_task(Mode, N-1, TaskFun, NewTaskArgsSpec);
+run_task(concurrent, 0, _TaskFun, _TaskArgsSpec) ->
     ok;
-run_task_fun(concurrent, N, TaskFun, TaskArgLst) ->
-    {NewTaskArgLst, Args} = choose_task_args(TaskArgLst),
+run_task(concurrent, N, TaskFun, TaskArgsSpec) ->
+    {NewTaskArgsSpec, Args} = choose_task_args(TaskArgsSpec),
     spawn(fun() -> TaskFun(Args) end),
-    run_task_fun(concurrent, N-1, TaskFun, NewTaskArgLst).
+    run_task(concurrent, N-1, TaskFun, NewTaskArgsSpec).
 
-choose_task_args(ArgDescLst) ->
+choose_task_args(ArgsSpec) ->
     lists:mapfoldl(
-        fun(ArgDesc, ArgAcc) -> choose_arg_from_desc(ArgDesc, ArgAcc) end,
+        fun(Args, ArgAcc) -> choose_arg_from_spec(Args, ArgAcc) end,
         [],
-        ArgDescLst
+        ArgsSpec
     ).
 
-choose_arg_from_desc({fixed, Uniq}, ArgAcc) ->
+choose_arg_from_spec({fixed, Uniq}, ArgAcc) ->
     {{fixed, Uniq}, ArgAcc ++ [Uniq]};
-choose_arg_from_desc({seq, [Arg|ArgQ]}, ArgAcc) ->
+choose_arg_from_spec({seq, [Arg|ArgQ]}, ArgAcc) ->
     {{seq, ArgQ++[Arg]}, ArgAcc ++ [Arg]};
-choose_arg_from_desc({choice, ArgLst}, ArgAcc) ->
+choose_arg_from_spec({choice, ArgLst}, ArgAcc) ->
     {{choice, ArgLst}, ArgAcc ++ [grd_util:choice(ArgLst)]};
-choose_arg_from_desc({rr, [], UsedArgs}, ArgAcc) ->
+choose_arg_from_spec({rr, [], UsedArgs}, ArgAcc) ->
     NewArgs = grd_util:shuffle(UsedArgs),
-    choose_arg_from_desc({rr, NewArgs, []}, ArgAcc);
-choose_arg_from_desc({rr, [Arg|ArgQ], UsedArgs}, ArgAcc) ->
+    choose_arg_from_spec({rr, NewArgs, []}, ArgAcc);
+choose_arg_from_spec({rr, [Arg|ArgQ], UsedArgs}, ArgAcc) ->
     {{rr, ArgQ, [Arg|UsedArgs]}, ArgAcc ++ [Arg]}.
 
-create_task_supervisor(ReportTo, TaskRepeat, TaskResultSpec) ->
+create_test_supervisor(ReportTo, Repeat, TaskResultSpec) ->
     StatVars = lists:map(fun statvar_create/1, TaskResultSpec),
     StatVarsUpdater = fun(LocalStatVars, LocalValLst) -> lists:zipwith(
         fun statvar_update/2,
         LocalStatVars,
         LocalValLst
     ) end,
-    TaskSupervisor = spawn(
+    Supervisor = spawn(
         ?MODULE, statvar_loop, [
             ReportTo,
             now(),
-            TaskRepeat,
+            Repeat,
             1,
             0,
             StatVarsUpdater,
@@ -197,16 +197,16 @@ create_task_supervisor(ReportTo, TaskRepeat, TaskResultSpec) ->
         ]
     ),
     ?DEBUG(
-        "worker ~w create TaskSupervisor ~w on node ~w",
-        [self(), TaskSupervisor, node()]
+        "worker ~w create Supervisor ~w on node ~w",
+        [self(), Supervisor, node()]
     ),
-    TaskSupervisor.
+    Supervisor.
 
 statvar_loop(ReportTo, T0, NTest, NTest, NError, StatVarsUpdater, StatVars) ->
     receive
         {stat, Pid, ValList} ->
             ?DEBUG(
-                "TaskManager ~w end on values from ~w:~w",
+                "Supervisor ~w end on values from ~w:~w",
                 [self(), Pid, ValList]
             ),
             NewStatVars = StatVarsUpdater(StatVars, ValList),
@@ -221,7 +221,7 @@ statvar_loop(ReportTo, T0, NTest, NTest, NError, StatVarsUpdater, StatVars) ->
             ok;
         {error, Pid, Reason} ->
             ?DEBUG(
-                "TaskManager ~w end on error from ~w:~w",
+                "Supervisor ~w end on error from ~w:~w",
                 [self(), Pid, Reason]
             ),
             ReportTo ! {
@@ -238,14 +238,14 @@ statvar_loop(ReportTo, T0, NTest, CurrentTest, NError, StatVarsUpdater, StatVars
     receive
         {stat, Pid, ValList} ->
             ?DEBUG(
-                "TaskManager ~w got values from ~w: ~w",
+                "Supervisor ~w got values from ~w: ~w",
                 [self(), Pid, ValList]
             ),
             NewStatVars = StatVarsUpdater(StatVars, ValList),
             statvar_loop(ReportTo, T0, NTest, CurrentTest+1, NError, StatVarsUpdater, NewStatVars);
         {error, Pid, Reason} ->
             ?DEBUG(
-                "TaskManager ~w got error from ~w: ~w",
+                "Supervisor ~w got error from ~w: ~w",
                 [self(), Pid, Reason]
             ),
             statvar_loop(ReportTo, T0, NTest, CurrentTest+1, NError+1, StatVarsUpdater, StatVars)
@@ -259,5 +259,5 @@ statvar_create({count, Name}) ->
 statvar_update({mean, Name, Cur}, Val) ->
     {mean, Name, [Val|Cur]};
 statvar_update({count, Name, Cur}, Val) ->
-    {count, Name, dict:update(Val, fun(Count) -> Count + 1 end, 1, Cur)}.
+    {count, Name, dict:update_counter(Val, 1, Cur)}.
 
