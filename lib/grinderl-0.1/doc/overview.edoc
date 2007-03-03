@@ -6,9 +6,9 @@
 @doc
 == Introduction ==
 
-Grinderl is a tool to run repeated tests on (remote) Erlang nodes.
+[http://code.google.com/p/grinderl Grinderl] is a tool to run repeated tests on (remote) Erlang nodes.
 
-It is inspired by the Grinder project, but aims to be a lightweight framework, easier to use than Tsung.
+It is inspired by the [http://grinder.sourceforge.net/ Grinder] project, but aims to be a more lightweight tool, and be easier to use than [http://tsung.erlang-projects.org Tsung] (history and [http://khigia.wordpress.com/2006/11/25/baby-steps-in-the-erlang-world origin of grinderl is here]).
 
 === What it does ===
 Repeat a function N time on each nodes, giving different argument for each function call, and gather all function results in the same place (intend is to compute statistics on those result, like a server respond time (load testing)).
@@ -24,7 +24,8 @@ or use the custom API provided by _grinderl_ module:
 grinderl:start().
 </pre>
 
-A tool script _irun.sh_ should work on most linux machine and start an Erlang node with SASL and grinderl.
+A tool script <em>grinderl.sh</em> should work on most linux machine and start an Erlang node with SASL and grinderl.
+
 
 == Architecture ==
 ...
@@ -33,7 +34,7 @@ A tool script _irun.sh_ should work on most linux machine and start an Erlang no
 == Annexe: test module to check installation ==
 
 <pre>
-./irun.sh
+./grinderl.sh debug
 #&gt;test:init(). % will add some nodes to grinderl: local node is registered twice
 #>test:test_seq1().
   % a function is run 3 times, with a delay of 1s each time, on all nodes
@@ -81,36 +82,5 @@ Debug:grd_stress_srv:202: Gatherer &lt;0.64.0&gt;: finish listening worker &lt;0
 Debug:grd_stress_srv:224:  writetime sum=    423.00 avg=    141.00 dev=      8.98 min=    130.00 max=    152.00 med=    141.00
 Debug:grd_stress_srv:232: writer_val lst=[{{[112,111,117,102],77},1},{{[98,101,97],0},1},{{[112,97,102],1},1}]
 Debug:grd_stress_srv:194: Gatherer &lt;0.64.0&gt;: finish listening all workers after 2012104 ms
-</pre>
-
-= Annexe: task and scenario =
-Currently a task is define by a record:
-<pre>
--record(task, {
-    nick,
-    task_fun,
-    arglst,
-    result_spec,
-    mode,
-    repeat_n
-}).
-
-nick::string()  : name of the task
-
-task_fun::fun() : function to evaluate, take N arguments, return must be:
-  {ok, Pid, [ReturnValue]}|{error, Pid, Reason}
-
-arglst::list()  : list of length N, each item is a tuple like:
-  {fixed, ArgValue::term()} : argument is ArgValue
-  {seq, [Args]}             : argument will take successive value in Args
-  {choice, [Args]}          : argument will take a random value in Args
-  {rr, [], [Args]}          : argument will take successively all value in Args in random order (rr for round-robin)
-
-result_spec::list() : describe all value return by task_fun in ReturnValue;
-  each of those return values has a type and a name, defined by a 2-tuple:
-  {mean, Name::atom()} : return value will be store in a list (intend is to compute mean value, variance...)
-  {count, Name::atom()} : return value will be store in a dictionary, where this return value is the key and the associated value is a counter.
-
-mode::atom(): concurrent|{sequence, Delay} If concurrent, each function call is a different processes; else one process do in sequence all the function calls, sleeping Delay miliseconds between each evaluation.
 </pre>
 

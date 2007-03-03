@@ -26,7 +26,7 @@
 -export([
     start_link/0,
     add_node/1,
-    distribute_task/1
+    distribute_test/1
 ]).
 
 
@@ -61,11 +61,11 @@ start_link() ->
 add_node(Node) when is_atom(Node) ->
     gen_server:call(?GRD_REG_STRESSSRV, {add_node, Node}).
 
-%%% @doc  Run a task on multiple nodes if needed.
-%%% @spec (Task) -> ok
+%%% @doc  Run a test on multiple nodes if needed.
+%%% @spec (Test) -> ok
 %%% @end
-distribute_task(Task) ->
-    gen_server:call(?GRD_REG_STRESSSRV, {run_task, Task}).
+distribute_test(Test) ->
+    gen_server:call(?GRD_REG_STRESSSRV, {run_test, Test}).
 
 
 % ~~ Implementation: Behaviour callbacks
@@ -79,17 +79,17 @@ init(_InitArgs) ->
     State = #state{},
     {ok, State}.
 
-%%% @doc  Handle request {add_node, Node} and {run_task, Task}; else nothing.
+%%% @doc  Handle request {add_node, Node} and {run_test, Test}; else nothing.
 %%% OTP meaning: handle any request sent through {@link gen_server:call/2} or {@link gen_server:multi_call/2}.
 %%% @see  gen_server:handle_call/3
 %%% @spec (Request, From, State) -> {reply|noreply|stop, Params}
 %%% @end
 handle_call({add_node, Node}, _From, State) ->
     handle_add_node(State, Node);
-handle_call({run_task, Task}, _From, State) ->
+handle_call({run_test, Test}, _From, State) ->
     NodeList = State#state.node_list,
     NodeCount = State#state.node_count,
-    ?DEBUG("begin task distribution on nodes:~w", [NodeList]),
+    ?DEBUG("begin test distribution on nodes:~w", [NodeList]),
     % create a process to handle all results
     % ... TODO Gatherer should maybe supervise all the workers
     % ... TODO all this gathering stuff could be done through Mnesia?
@@ -97,12 +97,12 @@ handle_call({run_task, Task}, _From, State) ->
     % create one worker per node
     Workers = lists:map(fun create_worker/1, NodeList),
     ?DEBUG("workers=~w", [Workers]),
-    % distribute the same task to all workers
+    % distribute the same test to all workers
     lists:foreach(
-        fun(Worker) -> grd_worker_srv:run_task(Worker, Task, Gatherer) end,
+        fun(Worker) -> grd_worker_srv:run_test(Worker, Test, Gatherer) end,
         Workers
     ),
-    ?DEBUG("end task distribution", []),
+    ?DEBUG("end test distribution", []),
     {reply, ok, State};
 handle_call(_Request, _From, State) ->
     {reply, ok, State}.
