@@ -1,5 +1,3 @@
-%%% @author Ludovic Coquelle <lcoquelle@gmail.com>
-%%% @copyright 2007 Ludovic Coquelle
 %%% @doc Application API.
 %%%
 %%% For license information see LICENSE.txt

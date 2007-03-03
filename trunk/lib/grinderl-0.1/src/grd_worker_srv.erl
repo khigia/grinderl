@@ -251,11 +251,15 @@ statvar_loop(ReportTo, T0, NTest, CurrentTest, NError, StatVarsUpdater, StatVars
             statvar_loop(ReportTo, T0, NTest, CurrentTest+1, NError+1, StatVarsUpdater, StatVars)
     end.
 
+statvar_create({acc, Name}) ->
+    {acc, Name, []};
 statvar_create({mean, Name}) ->
     {mean, Name, []};
 statvar_create({count, Name}) ->
     {count, Name, dict:new()}.
 
+statvar_update({acc, Name, Cur}, Val) ->
+    {acc, Name, [Val|Cur]};
 statvar_update({mean, Name, Cur}, Val) ->
     {mean, Name, [Val|Cur]};
 statvar_update({count, Name, Cur}, Val) ->

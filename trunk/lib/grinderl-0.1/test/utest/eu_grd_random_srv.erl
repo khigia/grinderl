@@ -1,5 +1,3 @@
-%%% @author Ludovic Coquelle <lcoquelle@gmail.com>
-%%% @copyright 2007 Ludovic Coquelle
 %%% @doc Test module.
 %%%
 %%% @end

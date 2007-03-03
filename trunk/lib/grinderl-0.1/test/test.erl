@@ -3,7 +3,11 @@
 -export([
     init/0,
     test_seq1/0,
-    test_con1/0
+    test_con1/0,
+    test_seq2/0,
+    test_con2/0,
+    test_seq3/0,
+    test_con3/0
 ]).
 
 init() ->
@@ -58,4 +62,97 @@ create_test1(Mode, Repeat) ->
         mode        = Mode,
         repeat_n    = Repeat
     }.
+    
+test_seq2() ->
+    % create task1 and run it on each node 3 times, sleeping 1s each time
+    Test = create_test2({sequence, 1000}, 3),
+    grinderl:run_test(Test).
+
+test_con2() ->
+    % create task1 and run it on each node 3 times concurrently
+    Test = create_test2(concurrent, 3),
+    grinderl:run_test(Test).
+
+create_test2(Mode, Repeat) ->
+    % use 'ping' command line to retrieve its raw output (text)
+    #test{
+        nick = 'Textual ping by command line',
+        task = #task{
+            callable    = grd_extcmd:command_2_taskfun(
+                % use "ping" command line as a function
+                "ping -n -c 1",
+                % how many argument on command line? =>
+                1
+            ),
+            args_spec   = [
+                % choose at random a host to ping
+                {choice, ["127.0.0.1", "localhost"]}
+            ],
+            result_spec = [
+                {acc, ping_raw_output}
+            ]
+        },
+        mode        = Mode,
+        repeat_n    = Repeat
+    }.
+    
+test_seq3() ->
+    % create task1 and run it on each node 3 times, sleeping 1s each time
+    Test = create_test3({sequence, 1000}, 3),
+    grinderl:run_test(Test).
+
+test_con3() ->
+    % create task1 and run it on each node 3 times concurrently
+    Test = create_test3(concurrent, 3),
+    grinderl:run_test(Test).
+
+create_test3(Mode, Repeat) ->
+    % use 'ping' command line, retrieve and parse its output
+    #test{
+        nick = 'Textual ping by command line',
+        task = #task{
+            callable    = grd_extcmd:command_2_taskfun(
+                % use "ping" command line as a function
+                "ping -n -c 1",
+                % how many argument on command line? =>
+                1,
+                % how to interpret output of this command
+                fun ping_output_parser/1
+            ),
+            args_spec   = [
+                % choose at random a host to ping
+                {choice, ["127.0.0.1", "localhost"]}
+            ],
+            result_spec = [
+                {acc, nicer_output}
+            ]
+        },
+        mode        = Mode,
+        repeat_n    = Repeat
+    }.
+
+ping_output_parser({0, Data}) ->
+    % Data is the rw output of the command
+    % ... let's extract some information
+    % WARNING: no test at all! may failed if the output of ping is slightly
+    % different of what I had during my tests...
+    Str = lists:flatten(Data),
+    {match, IPStart, IPLength} = regexp:match(
+        Str,
+        "\([0-9]+\.[0-9]+\.[0-9]+\.[0-9]+\)"
+    ),
+    IPStr = string:substr(Str, IPStart + 1, IPLength - 2),
+    {match, TimesStart, TimesLength} = regexp:match(
+        Str,
+        "([0-9]+\.[0-9]+)/([0-9]+\.[0-9]+)/([0-9]+\.[0-9]+)/([0-9]+\.[0-9]+)"
+    ),
+    TimesStr = string:substr(Str, TimesStart, TimesLength),
+    {ok, TimeStrings} = regexp:split(TimesStr, "/"),
+    Times = lists:map(
+        fun(FStr) -> {F,_R} = string:to_float(FStr), F end,
+        TimeStrings
+    ),
+    {ok, self(), [{IPStr, Times}]};
+ping_output_parser({Status, Data}) ->
+    {error, self(), [Status, Data]}.
     

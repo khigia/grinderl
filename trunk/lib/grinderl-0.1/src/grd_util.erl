@@ -8,10 +8,10 @@
 %%% @end
 -module(grd_util).
 
-% Declaration: OTP relative
+% ~~ Declaration: OTP relative
 %empty
 
-% Declaration: API
+% ~~ Declaration: API
 -include("grinderl.hrl").
 -export([
     log/5,
@@ -21,7 +21,7 @@
     shuffle/1
 ]).
 
-% Declaration: Internal
+% ~~ Declaration: Internal
 %empty
 
 
