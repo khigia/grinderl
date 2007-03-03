@@ -211,8 +211,10 @@ worker_manager_loop(T0, N) ->
             worker_manager_loop(T0, 0)
     end.
 
+manager_display_result({acc, Name, ValLst})->
+    ?DEBUG("~s ~w", [atom_to_list(Name), ValLst]);
 manager_display_result({mean, Name, ValLst})->
-    % TODO this will crash if ValLst is empty
+    % TODO this will crash if ValLst is empty or non numeric
     ValLstLen = length(ValLst),
     Sum = lists:foldl(fun(X, Acc) -> X + Acc end, 0.0, ValLst),
     Avg = Sum / ValLstLen,
