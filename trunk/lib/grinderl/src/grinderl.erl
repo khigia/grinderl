@@ -1,25 +1,31 @@
-%%% @doc Application API.
+%%% @doc Grinderl application and API.
+%%%
+%%% Implement entry point of this OTP application and its API.
 %%%
 %%% For license information see LICENSE.txt
 %%% @end
 -module(grinderl).
 
 
-% Declaration: OTP relative
-%empty
-
-
-% Declaration: API
+% ~~ Declaration: OTP relative
+-behaviour(application).
 -export([
-    start/0,
-    stop/0,
-    stop/1,
+    start/2,
+    stop/1
+]).
+
+
+% ~~ Declaration: API
+-export([
+    api_start/0,
+    api_stop/0,
+    api_stop/1,
     add_node/1,
     add_nodes/1,
     run_test/1
 ]).
 
-% Declaration: Internal
+% ~~ Declaration: Internal
 -include("include/grinderl.hrl").
 
 
@@ -29,19 +35,19 @@
 %%% @see  application:start/2
 %%% @spec () -> Result
 %%% @end
-start() ->
+api_start() ->
     application:start(grinderl).
 
 %%% @doc  Stop the local OTP application.
 %%% @spec () -> ok
 %%% @end
-stop() ->
+api_stop() ->
     application:stop(grinderl).
 
 %%% @doc  Stop the OTP application AND shutdown remote node AND local node!
 %%% @spec ([Node]) -> ok
 %%% @end
-stop([Node]) ->
+api_stop([Node]) ->
     case locate_node(Node) of
         {ok, FullNode} ->
             % stop the application,
@@ -75,8 +81,24 @@ add_nodes(Nodes) when is_list(Nodes) ->
 run_test(Test) ->
     grd_stress_srv:distribute_test(Test).
 
+
 % ~~ Implementation: Behaviour callbacks
-%empty
+
+%%% @doc  Start the main supervisor of the application.
+%%% @see  application:start/2
+%%% @see  grd_grinderl_sup:start_link/0
+%%% @spec (StartType, StartArgs) -> Result
+%%% @end
+start(_StartType, _StartArgs) ->
+    grd_grinderl_sup:start_link().
+
+%%% @doc  Stop the main supervisor of the application.
+%%% @see  application:stop/2
+%%% @spec (State::term()) -> NewState::term()
+%%% @end
+stop(State) ->
+    % close the main supervisor
+    State.
 
 
 % ~~ Implementation: Internal
